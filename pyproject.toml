@@ -1,8 +1,5 @@
 [build-system]
-requires = [
-    "hatchling>=1.21.0",
-    "hatch-vcs>=0.3.0",
-]
+requires = ["hatchling>=1.21.0", "hatch-vcs>=0.3.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
@@ -26,8 +23,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
-dependencies = [
-]
+dependencies = ["twat>=1.0.0"]
 
 
 [[project.authors]]
@@ -41,8 +37,6 @@ Issues = "https://github.com/twardoch/twat-audio/issues"
 Source = "https://github.com/twardoch/twat-audio"
 
 
-
-
 [tool.hatch.version]
 source = "vcs"
 
@@ -53,14 +47,8 @@ version_scheme = "post-release"
 version-file = "src/twat_audio/__version__.py"
 
 
-
 [tool.hatch.envs.default]
-dependencies = [
-    "pytest",
-    "pytest-cov",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
-]
+dependencies = ["pytest", "pytest-cov", "mypy>=1.0.0", "ruff>=0.1.0"]
 
 
 [tool.hatch.envs.default.scripts]
@@ -79,13 +67,15 @@ detached = true
 dependencies = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
+    "pyupgrade>=3.0.0",
+    "pyupgrade-directories>=0.3.0"
 ]
 
 
 [tool.hatch.envs.lint.scripts]
 typing = "mypy --install-types --non-interactive {args:src/twat_audio tests}"
 style = ["ruff check {args:.}", "ruff format {args:.}"]
-fmt = ["ruff format {args:.}", "ruff check --fix {args:.}"]
+fmt = ["ruff format {args:.}", "ruff check --fix {args:.}", "pyupgrade-directories --py310-plus --recursive ."]
 all = ["style", "typing"]
 
 
@@ -126,7 +116,7 @@ lint.ignore = [
 ]
 
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
 
 
@@ -149,9 +139,7 @@ warn_unreachable = true
 source_pkgs = ["twat_audio", "tests"]
 branch = true
 parallel = true
-omit = [
-    "src/twat_audio/__about__.py",
-]
+omit = ["src/twat_audio/__about__.py"]
 
 
 [tool.coverage.paths]
@@ -160,34 +148,27 @@ tests = ["tests", "*/twat-audio/tests"]
 
 
 [tool.coverage.report]
-exclude_lines = [
-    "no cov",
-    "if __name__ == .__main__.:",
-    "if TYPE_CHECKING:",
-]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
 
 [project.optional-dependencies]
 test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "pytest-xdist>=3.5.0",  # For parallel test execution
-    "pytest-benchmark[histogram]>=4.0.0",  # For performance testing
+    "pytest-xdist>=3.5.0",                # For parallel test execution
+    "pytest-benchmark[histogram]>=4.0.0", # For performance testing
 ]
 
 dev = [
     "pre-commit>=3.6.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "pyupgrade>=3.0.0",
+    "pyproject-pyupgrade>=0.1.0",
+    "pyupgrade-directories>=0.3.0",
 ]
 
 all = [
-    "pre-commit>=3.6.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0.0",
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-xdist>=3.5.0",
-    "pytest-benchmark[histogram]>=4.0.0",
+    "twat>=1.0.0",
 ]
 
 [tool.hatch.envs.test]
@@ -222,4 +203,10 @@ compare = [
     "iqr",    # Inter-quartile range
     "ops",    # Operations per second
     "rounds", # Number of rounds
-] 
+]
+
+[tool.pyupgrade]
+py310-plus = true
+# Should be run with 
+# python -m pyupgrade_directories --py310-plus --recursive .
+
