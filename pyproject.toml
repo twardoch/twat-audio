@@ -1,6 +1,10 @@
 # this_file: twat_audio/pyproject.toml
 
-# Build system configuration
+# this_file: twat_audio/pyproject.toml
+
+# Build System Configuration
+# -------------------------
+# Specifies the build system and its requirements for packaging the project
 # Specifies the build backend and its requirements for building the package
 [build-system]
 requires = ["hatchling>=1.21.0", "hatch-vcs>=0.3.0"]  # Core build backend and VCS plugin
@@ -11,7 +15,9 @@ build-backend = "hatchling.build"  # Use Hatchling as the build backend
 [tool.hatch.build.targets.wheel]
 packages = ["src/twat_audio"]
 
-# Core project metadata
+# Project Metadata Configuration
+# ------------------------------
+# Comprehensive project description, requirements, and compatibility information
 [project]
 name = "twat-audio"
 dynamic = ["version"]  # Version is determined dynamically from VCS
@@ -30,15 +36,20 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
-# Core dependencies required for the package to function
+# Runtime Dependencies
+# -------------------
+# External packages required for the project to function
 dependencies = ["twat>=1.0.0"]  # Main twat package dependency
 
-# Project author information
+# Project Authors
+# ---------------
 [[project.authors]]
 name = "Adam Twardoch"
 email = "adam+github@twardoch.com"
 
-# Project URLs for documentation and source code
+# Project URLs
+# ------------
+# Links to project resources for documentation, issues, and source code
 [project.urls]
 Documentation = "https://github.com/twardoch/twat-audio#readme"
 Issues = "https://github.com/twardoch/twat-audio/issues"
