@@ -1,1 +1,1 @@
-Update VERSION.txt - local changes
+0.1.0
