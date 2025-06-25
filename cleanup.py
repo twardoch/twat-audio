@@ -69,7 +69,7 @@ IGNORE_PATTERNS = [
     "build",
     "*.egg-info",
 ]
-REQUIRED_FILES = ["LOG.md", ".cursor/rules/0project.mdc", "TODO.md"]
+REQUIRED_FILES = ["LOG.md", "TODO.md"] # Removed .cursor/rules/0project.mdc
 LOG_FILE = Path("CLEANUP.txt")
 
 # Ensure we're working from the script's directory
@@ -81,15 +81,7 @@ def new() -> None:
     if LOG_FILE.exists():
         LOG_FILE.unlink()
 
-
-def prefix() -> None:
-    """Write README.md content to log file."""
-    readme = Path(".cursor/rules/0project.mdc")
-    if readme.exists():
-        log_message("\n=== PROJECT STATEMENT ===")
-        content = readme.read_text()
-        log_message(content)
-
+# prefix() function removed as .cursor/rules/0project.mdc is deleted.
 
 def suffix() -> None:
     """Write TODO.md content to log file."""
@@ -222,41 +214,13 @@ class Cleanup:
         log_message("Running code quality checks")
 
         try:
-            # Run ruff checks
-            log_message(">>> Running code fixes...")
-            run_command(
-                [
-                    "python",
-                    "-m",
-                    "ruff",
-                    "check",
-                    "--fix",
-                    "--unsafe-fixes",
-                    "src",
-                    "tests",
-                ],
-                check=False,
-            )
-            run_command(
-                [
-                    "python",
-                    "-m",
-                    "ruff",
-                    "format",
-                    "--respect-gitignore",
-                    "src",
-                    "tests",
-                ],
-                check=False,
-            )
+            # Use hatch to run comprehensive linting, formatting, and type checking
+            log_message(">>> Running comprehensive code quality checks & fixes (via python -m hatch)...")
+            run_command(["python", "-m", "hatch", "run", "lint:all"], check=False) # Runs style, typing, fix, fmt
 
-            # Run type checks
-            log_message(">>>Running type checks...")
-            run_command(["python", "-m", "mypy", "src", "tests"], check=False)
-
-            # Run tests
-            log_message(">>> Running tests...")
-            run_command(["python", "-m", "pytest", "tests"], check=False)
+            # Run tests with coverage via hatch
+            log_message(">>> Running tests with coverage (via python -m hatch)...")
+            run_command(["python", "-m", "hatch", "run", "default:test-cov"], check=False)
 
             log_message("All checks completed")
         except Exception as e:
@@ -264,7 +228,7 @@ class Cleanup:
 
     def status(self) -> None:
         """Show current repository status: tree structure, git status, and run checks."""
-        prefix()  # Add README.md content at start
+        # prefix() call removed
         self._print_header("Current Status")
 
         # Check required files
@@ -315,59 +279,18 @@ class Cleanup:
         else:
             log_message("No changes to commit")
 
-    def push(self) -> None:
-        """Push changes to remote repository."""
-        self._print_header("Pushing Changes")
-        try:
-            run_command(["git", "push"])
-            log_message("Changes pushed successfully")
-        except Exception as e:
-            log_message(f"Failed to push changes: {e}")
-
-
-def repomix(
-    *,
-    compress: bool = True,
-    remove_empty_lines: bool = True,
-    ignore_patterns: str = ".specstory/**/*.md,.venv/**,_private/**,CLEANUP.txt,**/*.json,*.lock",
-    output_file: str = "REPO_CONTENT.txt",
-) -> None:
-    """Combine repository files into a single text file.
-
-    Args:
-        compress: Whether to compress whitespace in output
-        remove_empty_lines: Whether to remove empty lines
-        ignore_patterns: Comma-separated glob patterns of files to ignore
-        output_file: Output file path
-    """
-    try:
-        # Build command
-        cmd = ["repomix"]
-        if compress:
-            cmd.append("--compress")
-        if remove_empty_lines:
-            cmd.append("--remove-empty-lines")
-        if ignore_patterns:
-            cmd.append("-i")
-            cmd.append(ignore_patterns)
-        cmd.extend(["-o", output_file])
-
-        # Run repomix
-        run_command(cmd)
-        log_message(f"Repository content mixed into {output_file}")
-
-    except Exception as e:
-        log_message(f"Failed to mix repository: {e}")
+    # update() and push() methods removed. Git operations to be manual.
+    # repomix() function removed as it's no longer used.
 
 
 def print_usage() -> None:
     """Print usage information."""
     log_message("Usage:")
-    log_message("  cleanup.py status   # Show current status and run all checks")
-    log_message("  cleanup.py venv     # Create virtual environment")
-    log_message("  cleanup.py install  # Install package with all extras")
-    log_message("  cleanup.py update   # Update and commit changes")
-    log_message("  cleanup.py push     # Push changes to remote")
+    log_message("  cleanup.py status   # Show current status, setup venv, install, and run all checks")
+    log_message("  cleanup.py venv     # Create/recreate virtual environment")
+    log_message("  cleanup.py install  # Install package with all extras into the venv")
+    # log_message("  cleanup.py update   # Update and commit changes") # Removed
+    # log_message("  cleanup.py push     # Push changes to remote") # Removed
 
 
 def main() -> NoReturn:
@@ -388,15 +311,16 @@ def main() -> NoReturn:
             cleanup.venv()
         elif command == "install":
             cleanup.install()
-        elif command == "update":
-            cleanup.update()
-        elif command == "push":
-            cleanup.push()
+        # Update and push commands removed
+        # elif command == "update":
+        #     cleanup.update()
+        # elif command == "push":
+        #     cleanup.push()
         else:
             print_usage()
     except Exception as e:
         log_message(f"Error: {e}")
-    repomix()
+    # repomix() call was here, already commented out and function now removed.
     sys.stdout.write(Path("CLEANUP.txt").read_text())
     sys.exit(0)  # Ensure we exit with a status code
 
