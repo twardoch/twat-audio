@@ -1,1 +1,1 @@
-Add VERSION.txt file
+Update VERSION.txt - local changes
