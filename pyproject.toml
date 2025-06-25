@@ -44,6 +44,7 @@ classifiers = [
 
 dependencies = [
     "twat>=1.8.1",
+    "pedalboard>=0.8.6", # Added pedalboard
 ]
 
 [[project.authors]]
