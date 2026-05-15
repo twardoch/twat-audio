@@ -1,32 +1,46 @@
 #!/usr/bin/env python3
-"""twat_audio:
+"""twat_audio: Audio processing utilities for the twat ecosystem.
 
-Created by Adam Twardoch
+Wraps Spotify's ``pedalboard`` library to load, resample, and save audio files.
+The main entry point is :func:`resample_audio`, which changes a file's sample
+rate — the number of audio samples captured per second (e.g. 44 100 Hz for CD
+quality, 22 050 Hz for speech, 16 000 Hz for many ML models).
+
+Supported formats (via pedalboard/libsndfile): WAV, AIFF, FLAC, OGG, MP3.
+
+Typical use::
+
+    from twat_audio import resample_audio, AudioProcessConfig
+
+    result = resample_audio(
+        AudioProcessConfig(
+            input_file="speech.wav",
+            output_file="speech_16k.wav",
+            target_samplerate=16000.0,
+        )
+    )
 """
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from pedalboard import Pedalboard, Resample
+import numpy as np
 from pedalboard.io import AudioFile
 
 
-__version__ = "0.1.0" # This will be overwritten by hatch-vcs
-
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class AudioProcessConfig:
     """Configuration settings for audio processing."""
+
     input_file: str | Path
     output_file: str | Path
     target_samplerate: float = 22050.0
@@ -34,9 +48,7 @@ class AudioProcessConfig:
     # effects: list[Any] = field(default_factory=list)
 
 
-def resample_audio(
-    config: AudioProcessConfig, *, debug: bool = False
-) -> dict[str, Any]:
+def resample_audio(config: AudioProcessConfig, *, debug: bool = False) -> dict[str, Any]:
     """
     Loads an audio file, resamples it, and saves it to the output path.
 
@@ -89,9 +101,11 @@ def resample_audio(
                 original_samplerate,
                 config.target_samplerate,
             )
-            # Pedalboard's Resample effect processes audio in a Pedalboard chain
-            board = Pedalboard([Resample(target_sample_rate=config.target_samplerate)])
-            resampled_audio = board(audio_data, original_samplerate)
+            resampled_audio = _resample_array(
+                audio_data,
+                original_samplerate=original_samplerate,
+                target_samplerate=config.target_samplerate,
+            )
             logger.debug("Resampling completed.")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -113,7 +127,30 @@ def resample_audio(
 
     except Exception as e:
         logger.exception("Error during audio processing for file %s: %s", input_path, e)
-        raise # Re-raise the exception after logging
+        raise  # Re-raise the exception after logging
+
+
+def _resample_array(
+    audio_data: np.ndarray,
+    *,
+    original_samplerate: float,
+    target_samplerate: float,
+) -> np.ndarray:
+    """Return audio data with a frame count matching the target sample rate."""
+    if original_samplerate <= 0 or target_samplerate <= 0:
+        msg = "Sample rates must be positive"
+        raise ValueError(msg)
+
+    if audio_data.ndim == 1:
+        audio_data = audio_data.reshape(1, -1)
+
+    source_frames = audio_data.shape[1]
+    target_frames = max(1, round(source_frames * target_samplerate / original_samplerate))
+    source_positions = np.linspace(0.0, 1.0, source_frames, endpoint=False)
+    target_positions = np.linspace(0.0, 1.0, target_frames, endpoint=False)
+
+    channels = [np.interp(target_positions, source_positions, channel) for channel in audio_data]
+    return np.vstack(channels).astype(np.float32)
 
 
 def main() -> None:
@@ -129,22 +166,20 @@ def main() -> None:
     if not dummy_input_file.exists():
         logger.info("Creating a dummy input WAV file: %s", dummy_input_file)
         try:
-            import numpy as np # Local import for dummy file creation
             samplerate = 44100
-            duration = 1 # second
-            frequency = 440 # Hz (A4 note)
+            duration = 1  # second
+            frequency = 440  # Hz (A4 note)
             t = np.linspace(0, duration, int(samplerate * duration), endpoint=False)
             dummy_signal = 0.5 * np.sin(2 * np.pi * frequency * t)
             # Make it stereo
             dummy_stereo_signal = np.vstack([dummy_signal, dummy_signal]).T
 
-            with AudioFile(str(dummy_input_file), "w", samplerate, dummy_stereo_signal.shape[0]) as f:
-                 f.write(dummy_stereo_signal)
+            with AudioFile(str(dummy_input_file), "w", samplerate, dummy_stereo_signal.shape[1]) as f:
+                f.write(dummy_stereo_signal)
             logger.info("Dummy input file created successfully.")
         except Exception as e:
             logger.error("Could not create dummy input file: %s. Please provide a valid WAV file.", e)
             return
-
 
     # Example usage of the resampling function
     try:

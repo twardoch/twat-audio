@@ -1,10 +1,50 @@
 """Test suite for twat_audio."""
 
 import importlib.metadata
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pytest
+from pedalboard.io import AudioFile as PedalboardAudioFile  # Alias to avoid confusion if other AudioFile is used
+
 import twat_audio  # Ensure twat_audio itself is importable
-from twat_audio import (
-    __version__ as module_fallback_version,
-)  # Fallback for non-installed scenarios
+from twat_audio import __version__ as module_fallback_version  # Fallback for non-installed scenarios
+from twat_audio.twat_audio import AudioProcessConfig, resample_audio
+
+ORIGINAL_SAMPLERATE = 44100.0
+TARGET_SAMPLERATE_RESAMPLE = 22050.0
+NUM_CHANNELS = 1
+DURATION_SEC = 0.1  # Short duration for faster tests
+
+
+@pytest.fixture
+def temp_audio_dir(tmp_path: Path) -> Path:
+    """Create a temporary directory for audio files."""
+    audio_dir = tmp_path / "audio_test_data"
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    return audio_dir
+
+
+def _create_dummy_wav(filepath: Path, samplerate: float, channels: int, duration_sec: float, frequency: float = 440.0):
+    """Helper function to create a dummy WAV file."""
+    t = np.linspace(0, duration_sec, int(samplerate * duration_sec), endpoint=False)
+    signal = 0.5 * np.sin(2 * np.pi * frequency * t)
+    if channels == 1:
+        audio_data = signal.astype(np.float32)
+    elif channels == 2:
+        audio_data = np.vstack([signal, signal]).T.astype(np.float32)
+    else:
+        msg = f"Unsupported number of channels for dummy file: {channels}"
+        raise ValueError(msg)
+
+    with PedalboardAudioFile(str(filepath), "w", samplerate, channels) as f:
+        if channels == 1:
+            f.write(
+                audio_data.reshape(1, -1)
+            )  # Pedalboard expects (channels, samples) for mono too if writing directly
+        else:
+            f.write(audio_data.T)  # pedalboard expects (channels, samples)
 
 
 def test_version() -> None:
@@ -22,56 +62,8 @@ def test_version() -> None:
 
     # Optional: verify twat_audio.__version__ exists if the module is expected to have it
     # after import, regardless of how version was obtained.
-    assert hasattr(twat_audio, "__version__"), (
-        "twat_audio module should have __version__ attribute"
-    )
+    assert hasattr(twat_audio, "__version__"), "twat_audio module should have __version__ attribute"
     assert twat_audio.__version__, "twat_audio.__version__ should not be empty"
-
-    # Optional: Cross-check if versions match, if both methods are expected to yield same result
-    # if 'installed_version' in locals():
-    #     assert twat_audio.__version__ == installed_version
-    # else:
-    #     assert twat_audio.__version__ == module_fallback_version
-
-
-# --- Tests for audio processing ---
-import pytest
-from pathlib import Path
-import numpy as np
-from pedalboard.io import AudioFile as PedalboardAudioFile # Alias to avoid confusion if other AudioFile is used
-
-from twat_audio.twat_audio import AudioProcessConfig, resample_audio
-
-ORIGINAL_SAMPLERATE = 44100.0
-TARGET_SAMPLERATE_RESAMPLE = 22050.0
-NUM_CHANNELS = 1
-DURATION_SEC = 0.1 # Short duration for faster tests
-
-@pytest.fixture
-def temp_audio_dir(tmp_path: Path) -> Path:
-    """Create a temporary directory for audio files."""
-    audio_dir = tmp_path / "audio_test_data"
-    audio_dir.mkdir(parents=True, exist_ok=True)
-    return audio_dir
-
-def _create_dummy_wav(
-    filepath: Path, samplerate: float, channels: int, duration_sec: float, frequency: float = 440.0
-):
-    """Helper function to create a dummy WAV file."""
-    t = np.linspace(0, duration_sec, int(samplerate * duration_sec), endpoint=False)
-    signal = 0.5 * np.sin(2 * np.pi * frequency * t)
-    if channels == 1:
-        audio_data = signal.astype(np.float32)
-    elif channels == 2:
-        audio_data = np.vstack([signal, signal]).T.astype(np.float32)
-    else:
-        raise ValueError(f"Unsupported number of channels for dummy file: {channels}")
-
-    with PedalboardAudioFile(str(filepath), "w", samplerate, channels, audio_data.shape[0]) as f:
-        if channels == 1:
-            f.write(audio_data.reshape(1, -1)) # Pedalboard expects (channels, samples) for mono too if writing directly
-        else:
-            f.write(audio_data.T) # pedalboard expects (channels, samples)
 
 
 @pytest.fixture
@@ -80,6 +72,7 @@ def dummy_wav_file(temp_audio_dir: Path) -> Path:
     filepath = temp_audio_dir / "input_original.wav"
     _create_dummy_wav(filepath, ORIGINAL_SAMPLERATE, NUM_CHANNELS, DURATION_SEC)
     return filepath
+
 
 def test_resample_audio_successful(dummy_wav_file: Path, temp_audio_dir: Path):
     """Test successful audio resampling to a different sample rate."""
@@ -102,13 +95,14 @@ def test_resample_audio_successful(dummy_wav_file: Path, temp_audio_dir: Path):
         # Duration might have a tiny difference due to resampling discrete samples
         assert abs(af.duration - DURATION_SEC) < 0.01
 
+
 def test_resample_audio_same_samplerate(dummy_wav_file: Path, temp_audio_dir: Path):
     """Test audio processing when target samplerate is the same as original."""
     output_file = temp_audio_dir / "output_same_sr.wav"
     config = AudioProcessConfig(
         input_file=dummy_wav_file,
         output_file=output_file,
-        target_samplerate=ORIGINAL_SAMPLERATE, # Same as original
+        target_samplerate=ORIGINAL_SAMPLERATE,  # Same as original
     )
     result = resample_audio(config)
 
@@ -120,7 +114,8 @@ def test_resample_audio_same_samplerate(dummy_wav_file: Path, temp_audio_dir: Pa
     with PedalboardAudioFile(str(output_file)) as af:
         assert af.samplerate == ORIGINAL_SAMPLERATE
         assert af.num_channels == NUM_CHANNELS
-        assert abs(af.duration - DURATION_SEC) < 0.01 # Duration should be very close
+        assert abs(af.duration - DURATION_SEC) < 0.01  # Duration should be very close
+
 
 def test_resample_audio_input_not_found(temp_audio_dir: Path):
     """Test FileNotFoundError when input audio file does not exist."""
@@ -135,6 +130,7 @@ def test_resample_audio_input_not_found(temp_audio_dir: Path):
     with pytest.raises(FileNotFoundError, match=f"Input audio file not found: {non_existent_file}"):
         resample_audio(config)
     assert not output_file.exists()
+
 
 def test_resample_audio_stereo(temp_audio_dir: Path):
     """Test successful audio resampling for a stereo file."""
