@@ -106,7 +106,6 @@ style = ["ruff check {args:.}", "ruff format {args:.}"]
 fmt = ["ruff format {args:.}", "ruff check --fix {args:.}"]
 fix = ["find . -name '*.py' -exec pyupgrade --py310-plus {} +", "ruff check --fix --unsafe-fixes {args:.}", "ruff format {args:.}"]
 all = ["style", "typing", "fix", "fmt"]
-
 #------------------------------------------------------------------------------
 # DEVELOPMENT ENVIRONMENTS
 #------------------------------------------------------------------------------
@@ -245,11 +244,11 @@ docs = [
     "myst-parser>=3.0.0",
 ]
 
-all = [
-    "twat>=1.8.1",
-]
-
+all = ["twat>=1.8.1", "twat-mp[all]>=2.6.4"]
 # Test environment configuration
+parallel = [
+    "twat-mp[all]>=2.6.4",
+]
 [tool.hatch.envs.test]
 dependencies = [".[test]"]
 
