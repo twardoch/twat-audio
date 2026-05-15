@@ -2,15 +2,10 @@
 # this_file: src/twat_audio/__init__.py
 
 from __future__ import annotations
+from .__version__ import __version__  # noqa: F401
 
-from importlib.metadata import PackageNotFoundError, version
 
 from twat_audio.__main__ import main as cli_main
-
-try:
-    __version__ = version("twat-audio")
-except PackageNotFoundError:
-    __version__ = "0.0.0-dev"
 
 from twat_audio.ffmpeg import CommandResult, probe_audio, run_command, run_ffmpeg
 from twat_audio.genai import generate_audio
