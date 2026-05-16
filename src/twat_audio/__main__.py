@@ -1,83 +1,157 @@
-"""Command-line interface for twat-audio."""
 # this_file: src/twat_audio/__main__.py
+"""Fire CLI entry point for twat-audio."""
 
 from __future__ import annotations
 
-import argparse
-
-from twat_audio.operations import extract_audio, normalize_audio, replace_audio, simple_effect, trim_audio
-from twat_audio.twat_audio import AudioProcessConfig, resample_audio
+import fire
 
 
-def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="twat-audio", description="Audio processing helpers.")
-    sub = parser.add_subparsers(dest="command")
+def _version() -> str:
+    """Print the installed twat-audio version."""
+    from twat_audio.__version__ import __version__  # noqa: PLC0415
 
-    resample = sub.add_parser("resample", help="Resample an audio file with Pedalboard.")
-    resample.add_argument("input")
-    resample.add_argument("output")
-    resample.add_argument("--samplerate", type=float, default=22050.0)
-
-    normalize = sub.add_parser("normalize", help="Normalize loudness.")
-    normalize.add_argument("input")
-    normalize.add_argument("output")
-    normalize.add_argument("--target-i", type=float, default=-16.0)
-    normalize.add_argument("--dry-run", action="store_true")
-
-    trim = sub.add_parser("trim", help="Trim an audio file.")
-    trim.add_argument("input")
-    trim.add_argument("output")
-    trim.add_argument("--start", type=float, default=0.0)
-    trim.add_argument("--duration", type=float)
-    trim.add_argument("--dry-run", action="store_true")
-
-    extract = sub.add_parser("extract", help="Extract audio from media.")
-    extract.add_argument("input")
-    extract.add_argument("output")
-    extract.add_argument("--codec", default="pcm_s16le")
-    extract.add_argument("--dry-run", action="store_true")
-
-    replace = sub.add_parser("replace", help="Replace video audio.")
-    replace.add_argument("video")
-    replace.add_argument("audio")
-    replace.add_argument("output")
-    replace.add_argument("--dry-run", action="store_true")
-
-    effect = sub.add_parser("effect", help="Apply an ffmpeg audio filter.")
-    effect.add_argument("input")
-    effect.add_argument("output")
-    effect.add_argument("filter")
-    effect.add_argument("--dry-run", action="store_true")
-    return parser
+    return __version__
 
 
-def _print(result: object) -> None:
-    command = getattr(result, "command", None)
-    if command:
-        print(" ".join(command))
-    elif result is not None:
-        print(result)
+def _info(path: str) -> object:
+    """Return audio/media metadata via ffprobe."""
+    from twat_audio.operations import audio_metadata  # noqa: PLC0415
+
+    return audio_metadata(path)
+
+
+def _transcode(
+    input_path: str,
+    output_path: str,
+    codec: str = "pcm_s16le",
+    *,
+    dry_run: bool = False,
+) -> object:
+    """Extract/transcode audio from a media file."""
+    from twat_audio.operations import extract_audio  # noqa: PLC0415
+
+    return extract_audio(input_path, output_path, codec=codec, dry_run=dry_run)
+
+
+def _normalize(
+    input_path: str,
+    output_path: str,
+    target_i: float = -16.0,
+    *,
+    dry_run: bool = False,
+) -> object:
+    """Normalize loudness with ffmpeg's loudnorm filter."""
+    from twat_audio.operations import normalize_audio  # noqa: PLC0415
+
+    return normalize_audio(input_path, output_path, target_i=target_i, dry_run=dry_run)
+
+
+def _silence_trim(
+    input_path: str,
+    output_path: str,
+    start: float = 0.0,
+    duration: float | None = None,
+    *,
+    dry_run: bool = False,
+) -> object:
+    """Trim an audio segment."""
+    from twat_audio.operations import trim_audio  # noqa: PLC0415
+
+    return trim_audio(input_path, output_path, start=start, duration=duration, dry_run=dry_run)
+
+
+def _resample(
+    input_path: str,
+    output_path: str,
+    samplerate: float = 22050.0,
+) -> object:
+    """Resample an audio file with Pedalboard."""
+    from twat_audio.twat_audio import AudioProcessConfig, resample_audio  # noqa: PLC0415
+
+    return resample_audio(AudioProcessConfig(input_path, output_path, samplerate))
+
+
+def _effect(
+    input_path: str,
+    output_path: str,
+    audio_filter: str,
+    *,
+    dry_run: bool = False,
+) -> object:
+    """Apply a caller-provided ffmpeg audio filter string."""
+    from twat_audio.operations import simple_effect  # noqa: PLC0415
+
+    return simple_effect(input_path, output_path, audio_filter, dry_run=dry_run)
+
+
+def _replace(
+    video: str,
+    audio: str,
+    output_path: str,
+    *,
+    dry_run: bool = False,
+) -> object:
+    """Replace a media file's audio stream with a separate audio file."""
+    from twat_audio.operations import replace_audio  # noqa: PLC0415
+
+    return replace_audio(video, audio, output_path, dry_run=dry_run)
+
+
+COMMANDS: dict[str, object] = {
+    "version": _version,
+    "info": _info,
+    "transcode": _transcode,
+    "normalize": _normalize,
+    "silence-trim": _silence_trim,
+    "resample": _resample,
+    "effect": _effect,
+    "replace": _replace,
+}
 
 
 def main() -> None:
-    """Run the twat-audio CLI."""
-    parser = _parser()
-    args = parser.parse_args()
-    if args.command is None:
-        parser.print_help()
-        return
-    if args.command == "resample":
-        _print(resample_audio(AudioProcessConfig(args.input, args.output, args.samplerate)))
-    elif args.command == "normalize":
-        _print(normalize_audio(args.input, args.output, target_i=args.target_i, dry_run=args.dry_run))
-    elif args.command == "trim":
-        _print(trim_audio(args.input, args.output, start=args.start, duration=args.duration, dry_run=args.dry_run))
-    elif args.command == "extract":
-        _print(extract_audio(args.input, args.output, codec=args.codec, dry_run=args.dry_run))
-    elif args.command == "replace":
-        _print(replace_audio(args.video, args.audio, args.output, dry_run=args.dry_run))
-    elif args.command == "effect":
-        _print(simple_effect(args.input, args.output, args.filter, dry_run=args.dry_run))
+    """Fire CLI dispatcher for twat-audio."""
+    fire.Fire(COMMANDS, name="twat-audio")
+
+
+def cmd_version() -> None:
+    """Print the installed twat-audio version."""
+    fire.Fire(_version, name="twat-audio-version")
+
+
+def cmd_info() -> None:
+    """Return audio/media metadata via ffprobe."""
+    fire.Fire(_info, name="twat-audio-info")
+
+
+def cmd_transcode() -> None:
+    """Extract/transcode audio from a media file."""
+    fire.Fire(_transcode, name="twat-audio-transcode")
+
+
+def cmd_normalize() -> None:
+    """Normalize loudness with ffmpeg's loudnorm filter."""
+    fire.Fire(_normalize, name="twat-audio-normalize")
+
+
+def cmd_silence_trim() -> None:
+    """Trim an audio segment."""
+    fire.Fire(_silence_trim, name="twat-audio-silence-trim")
+
+
+def cmd_resample() -> None:
+    """Resample an audio file with Pedalboard."""
+    fire.Fire(_resample, name="twat-audio-resample")
+
+
+def cmd_effect() -> None:
+    """Apply a caller-provided ffmpeg audio filter string."""
+    fire.Fire(_effect, name="twat-audio-effect")
+
+
+def cmd_replace() -> None:
+    """Replace a media file's audio stream with a separate audio file."""
+    fire.Fire(_replace, name="twat-audio-replace")
 
 
 if __name__ == "__main__":

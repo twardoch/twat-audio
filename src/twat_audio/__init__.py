@@ -2,14 +2,21 @@
 # this_file: src/twat_audio/__init__.py
 
 from __future__ import annotations
-from .__version__ import __version__  # noqa: F401
+from .__version__ import __version__
 
 
 from twat_audio.__main__ import main as cli_main
 
 from twat_audio.ffmpeg import CommandResult, probe_audio, run_command, run_ffmpeg
 from twat_audio.genai import generate_audio
-from twat_audio.operations import audio_metadata, extract_audio, normalize_audio, replace_audio, simple_effect, trim_audio
+from twat_audio.operations import (
+    audio_metadata,
+    extract_audio,
+    normalize_audio,
+    replace_audio,
+    simple_effect,
+    trim_audio,
+)
 from twat_audio.twat_audio import AudioProcessConfig, resample_audio
 
 

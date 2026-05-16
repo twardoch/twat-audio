@@ -43,6 +43,7 @@ classifiers = [
 dependencies = [
     "twat>=1.8.1",
     "pedalboard>=0.8.6", # Added pedalboard
+    "fire>=0.6.0",
 ]
 
 [[project.authors]]
@@ -53,7 +54,15 @@ email = "adam+github@twardoch.com"
 # ------------
 # Links to project resources for documentation, issues, and source code
 [project.scripts]
-twat-audio = "twat_audio:main"
+twat-audio             = "twat_audio.__main__:main"
+twat-audio-version     = "twat_audio.__main__:cmd_version"
+twat-audio-info        = "twat_audio.__main__:cmd_info"
+twat-audio-transcode   = "twat_audio.__main__:cmd_transcode"
+twat-audio-normalize   = "twat_audio.__main__:cmd_normalize"
+twat-audio-silence-trim = "twat_audio.__main__:cmd_silence_trim"
+twat-audio-resample    = "twat_audio.__main__:cmd_resample"
+twat-audio-effect      = "twat_audio.__main__:cmd_effect"
+twat-audio-replace     = "twat_audio.__main__:cmd_replace"
 
 [project.entry-points."twat.plugins"]
 audio = "twat_audio"
