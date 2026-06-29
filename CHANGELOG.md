@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- `ci.yml` GitHub Actions workflow: cross-platform matrix (ubuntu/windows/macos × Python 3.10–3.12), ruff lint+format check, mypy (non-blocking), pytest with coverage upload.
+- `mkdocs.yml` with Material theme (deep purple palette, dark/light toggle, full nav and search).
+- `src_docs/` documentation tree: index, installation, quick start, supported formats, CLI reference, Python API reference, contributing guide, style guide, changelog and license pages.
+- `requirements-docs.txt` for mkdocs-material and plugins.
+- `STYLE_GUIDE.md` covering type hints, docstrings, `dry_run` pattern, error handling, import order, and naming conventions.
+- Python 3.13 classifier in `pyproject.toml`.
+
+### Changed
+- `pyproject.toml` docs optional-dependency group switched from Sphinx to mkdocs-material stack.
+- `[tool.hatch.envs.docs.scripts]` updated from `sphinx-build` to `mkdocs build` / `mkdocs serve`.
+
+## [2.7.10] — Previous
+### Added
 - Created `PLAN.md` with steps for MVP streamlining.
 - Created `TODO.md` with initial task list.
 - Created `CHANGELOG.md` (this file).
